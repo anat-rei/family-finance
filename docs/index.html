@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Family Finance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'media',
+      theme: {
+        extend: {
+          colors: {
+            brand: '#6366f1',
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .spinner {
+      border: 3px solid rgba(99,102,241,0.2);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast-enter { animation: toastIn 0.3s ease; }
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(100%); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .drag-over { border-color: #6366f1 !important; background: rgba(99,102,241,0.08); }
+    .cat-row-expanded { background: rgba(99,102,241,0.04); }
+    .slide-panel {
+      transition: transform 0.3s ease;
+      transform: translateX(100%);
+    }
+    .slide-panel.open {
+      transform: translateX(0);
+    }
+    input, select, textarea {
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      ring: 2px solid #6366f1;
+    }
+  </style>
+</head>
+<body class="h-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans">
+
+<!-- ═══════════════════════════════════════════════════════
+     TOAST CONTAINER
+════════════════════════════════════════════════════════ -->
+<div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-80 pointer-events-none"></div>
+
+<!-- ═══════════════════════════════════════════════════════
+     LOGIN VIEW
+════════════════════════════════════════════════════════ -->
+<div id="view-login" class="min-h-screen flex items-center justify-center px-4">
+  <div class="w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+    <div class="text-center mb-8">
+      <div class="text-3xl font-bold text-indigo-600 dark:text-indigo-400 mb-1">Family Finance</div>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Track your family expenses together</p>
+    </div>
+
+    <div id="login-form">
+      <h2 class="text-xl font-semibold mb-5">Sign In</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Email</label>
+          <input id="login-email" type="email" placeholder="you@example.com"
+            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Password</label>
+          <input id="login-password" type="password" placeholder="••••••••"
+            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm" />
+        </div>
+        <div id="login-error" class="hidden text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2"></div>
+        <button id="btn-login" onclick="doLogin()"
+          class="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm transition-colors flex items-center justify-center gap-2">
+          <span>Sign In</span>
+        </button>
+      </div>
+      <p class="text-sm text-center mt-5 text-gray-500 dark:text-gray-400">
+        No account? <a href="#" onclick="showRegister()" class="text-indigo-600 dark:text-indigo-400 hover:underline">Register</a>
+      </p>
+    </div>
+
+    <div id="register-form" class="hidden">
+      <h2 class="text-xl font-semibold mb-5">Create Account</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Display Name</label>
+          <input id="reg-name" type="text" placeholder="Your Name"
+            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Email</label>
+          <input id="reg-email" type="email" placeholder="you@example.com"
+            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Password</label>
+          <input id="reg-password" type="password" placeholder="Min 8 characters"
+            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm" />
+        </div>
+        <div id="reg-error" class="hidden text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2"></div>
+        <button onclick="doRegister()"
+          class="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm transition-colors">
+          Create Account
+        </button>
+      </div>
+      <p class="text-sm text-center mt-5 text-gray-500 dark:text-gray-400">
+        Have account? <a href="#" onclick="showLogin()" class="text-indigo-600 dark:text-indigo-400 hover:underline">Sign in</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MAIN APP VIEW
+════════════════════════════════════════════════════════ -->
+<div id="view-app" class="hidden h-screen flex flex-col">
+
+  <!-- TOP NAVBAR -->
+  <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center gap-3 z-30 shrink-0">
+    <div class="text-lg font-bold text-indigo-600 dark:text-indigo-400 mr-2 hidden sm:block">Family Finance</div>
+    <!-- Month selector -->
+    <div class="flex items-center gap-1.5">
+      <button onclick="changeMonth(-1)" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <select id="month-select" onchange="onMonthChange()" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500">
+      </select>
+      <button onclick="changeMonth(1)" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <!-- Bank filter -->
+    <select id="navbar-bank" onchange="onBankChange()" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 hidden sm:block">
+      <option value="">All Banks</option>
+      <option value="bankinter_debit">Bankinter Debit</option>
+      <option value="bankinter_credit">Bankinter Credit</option>
+      <option value="hapoalim">Bank Hapoalim</option>
+    </select>
+    <!-- Needs review badge -->
+    <button onclick="goToReview()" id="review-badge" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-semibold hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span id="review-badge-count">0</span> to review
+    </button>
+    <div class="ml-auto flex items-center gap-3">
+      <span id="navbar-username" class="text-sm text-gray-600 dark:text-gray-400 hidden sm:block"></span>
+      <button onclick="doLogout()" class="text-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors">
+        Logout
+      </button>
+    </div>
+  </nav>
+
+  <!-- BODY: sidebar + content -->
+  <div class="flex flex-1 overflow-hidden">
+    <!-- SIDEBAR (desktop) -->
+    <aside class="hidden md:flex flex-col w-56 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 py-4 shrink-0">
+      <nav class="space-y-1 px-3">
+        <button onclick="showView('dashboard')" id="nav-dashboard"
+          class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          Dashboard
+        </button>
+        <button onclick="showView('transactions')" id="nav-transactions"
+          class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          Transactions
+        </button>
+        <button onclick="showView('categories')" id="nav-categories"
+          class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 10V5a2 2 0 012-2z"/></svg>
+          Categories
+        </button>
+        <button onclick="showView('uploads')" id="nav-uploads"
+          class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          Uploads
+        </button>
+      </nav>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-y-auto">
+      <!-- ─ DASHBOARD ─ -->
+      <section id="section-dashboard" class="p-4 md:p-6 space-y-6">
+        <div id="dashboard-spinner" class="flex justify-center py-16"><div class="spinner"></div></div>
+        <div id="dashboard-content" class="hidden space-y-6">
+          <!-- Summary cards -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Current Balance — editable -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div class="flex items-center justify-between">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Current Balance</p>
+                <button onclick="startEditSetting('current_balance','dash-balance')" class="text-gray-400 hover:text-indigo-500 transition-colors" title="Edit">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.172-8.172z"/></svg>
+                </button>
+              </div>
+              <div id="dash-balance-display">
+                <p id="dash-balance" class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">€0.00</p>
+              </div>
+              <div id="dash-balance-edit" class="hidden mt-1 flex items-center gap-1">
+                <span class="text-xl font-bold text-gray-400">€</span>
+                <input id="dash-balance-input" type="number" step="0.01" class="w-full text-xl font-bold border-b-2 border-indigo-400 bg-transparent focus:outline-none dark:text-white"
+                  onkeydown="if(event.key==='Enter')commitSetting('current_balance','dash-balance');if(event.key==='Escape')cancelEditSetting('dash-balance')"
+                  onblur="commitSetting('current_balance','dash-balance')">
+              </div>
+            </div>
+            <!-- Monthly Income — editable -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <div class="flex items-center justify-between">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Monthly Income</p>
+                <button onclick="startEditIncome()" class="text-gray-400 hover:text-indigo-500 transition-colors" title="Edit">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.172-8.172z"/></svg>
+                </button>
+              </div>
+              <div id="dash-income-display">
+                <p id="dash-income" class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">€0.00</p>
+              </div>
+              <div id="dash-income-edit" class="hidden mt-1 flex items-center gap-1">
+                <span class="text-xl font-bold text-gray-400">€</span>
+                <input id="dash-income-input" type="number" step="0.01" class="w-full text-xl font-bold border-b-2 border-indigo-400 bg-transparent focus:outline-none dark:text-white"
+                  onkeydown="if(event.key==='Enter')commitIncome();if(event.key==='Escape')cancelEditSetting('dash-income')"
+                  onblur="commitIncome()">
+              </div>
+            </div>
+            <!-- Total Expenses — calculated -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
+              <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total Expenses</p>
+              <p id="dash-expenses" class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">€0.00</p>
+            </div>
+            <!-- Needs Review -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer hover:border-amber-400 transition-colors" onclick="goToReview()">
+              <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Needs Review</p>
+              <p id="dash-review" class="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">0</p>
+            </div>
+          </div>
+
+          <!-- Category breakdown -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+              <h2 class="font-semibold text-base">Expenses by Category</h2>
+            </div>
+            <div class="overflow-x-auto">
+              <table id="category-table" class="w-full text-sm hidden">
+                <thead>
+                  <tr class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-100 dark:border-gray-700">
+                    <th class="px-5 py-2 text-left">Category / Subcategory</th>
+                    <th class="px-5 py-2 text-right">Amount</th>
+                    <th class="px-5 py-2 text-right w-16">%</th>
+                  </tr>
+                </thead>
+                <tbody id="category-tbody"></tbody>
+              </table>
+            </div>
+            <div id="category-empty" class="hidden py-12 text-center text-gray-400 dark:text-gray-500 text-sm">No expense data for this period.</div>
+          </div>
+
+          <!-- Review panel -->
+          <div id="review-panel" class="hidden">
+            <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
+              <div class="px-5 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <span class="font-semibold text-amber-800 dark:text-amber-300">Transactions Needing Review</span>
+                </div>
+                <button onclick="document.getElementById('review-panel').classList.add('hidden')" class="text-amber-500 hover:text-amber-700 dark:text-amber-400">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <div id="review-table" class="overflow-x-auto"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─ TRANSACTIONS ─ -->
+      <section id="section-transactions" class="hidden p-4 md:p-6 space-y-4">
+        <!-- Filter bar -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
+          <div class="flex flex-wrap gap-3 items-end">
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Month</label>
+              <select id="txn-filter-month" onchange="loadTransactions(1)" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Bank</label>
+              <select id="txn-filter-bank" onchange="loadTransactions(1)" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700">
+                <option value="">All</option>
+                <option value="bankinter_debit">Bankinter Debit</option>
+                <option value="bankinter_credit">Bankinter Credit</option>
+                <option value="hapoalim">Bank Hapoalim</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 mb-1">Subcategory</label>
+              <select id="txn-filter-subcat" onchange="loadTransactions(1)" class="text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700 min-w-[120px]">
+                <option value="">All</option>
+              </select>
+            </div>
+            <label class="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" id="txn-filter-unreviewed" onchange="loadTransactions(1)" class="w-4 h-4 text-indigo-600 rounded">
+              <span>Unreviewed only</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" id="txn-filter-dupes" onchange="loadTransactions(1)" class="w-4 h-4 text-indigo-600 rounded">
+              <span>Duplicates only</span>
+            </label>
+            <button onclick="openAddTxnPanel()"
+              class="ml-auto px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium transition-colors flex items-center gap-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              Add
+            </button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div id="txn-spinner" class="flex justify-center py-16"><div class="spinner"></div></div>
+          <div id="txn-table-wrap" class="hidden overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-gray-50 dark:bg-gray-700/50 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  <th class="px-4 py-3 text-left">Date</th>
+                  <th class="px-4 py-3 text-left">Bank</th>
+                  <th class="px-4 py-3 text-left">Description</th>
+                  <th class="px-4 py-3 text-left">Merchant</th>
+                  <th class="px-4 py-3 text-right">Amount</th>
+                  <th class="px-4 py-3 text-left">Category</th>
+                  <th class="px-4 py-3 text-left">Subcategory</th>
+                  <th class="px-4 py-3 text-left">Notes</th>
+                  <th class="px-4 py-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="txn-tbody" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody>
+            </table>
+          </div>
+          <div id="txn-empty" class="hidden py-14 text-center text-gray-400 dark:text-gray-500">
+            <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <p class="font-medium">No transactions found</p>
+            <p class="text-xs mt-1">Try adjusting your filters or upload a bank file.</p>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div id="txn-pagination" class="hidden flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+          <span id="txn-paging-info"></span>
+          <div class="flex gap-2">
+            <button id="btn-prev-page" onclick="loadTransactions(currentTxnPage-1)"
+              class="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">Previous</button>
+            <button id="btn-next-page" onclick="loadTransactions(currentTxnPage+1)"
+              class="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed">Next</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─ CATEGORIES ─ -->
+      <section id="section-categories" class="hidden p-4 md:p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Categories list -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <h2 class="font-semibold">Categories</h2>
+              <button onclick="showAddCategoryForm()" class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors">+ Add</button>
+            </div>
+            <div id="cats-spinner" class="flex justify-center py-12"><div class="spinner"></div></div>
+            <div id="cat-add-form" class="hidden px-5 py-4 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-800">
+              <div class="space-y-3">
+                <div class="flex gap-2">
+                  <input id="new-cat-name" type="text" placeholder="Category name"
+                    class="flex-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500" />
+                  <input id="new-cat-color" type="color" value="#6366f1"
+                    class="w-10 h-9 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer" />
+                </div>
+                <label class="flex items-center gap-2 text-sm">
+                  <input type="checkbox" id="new-cat-income" class="w-4 h-4 text-indigo-600 rounded">
+                  <span>Is income category</span>
+                </label>
+                <div class="flex gap-2">
+                  <button onclick="addCategory()" class="flex-1 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium">Save</button>
+                  <button onclick="hideAddCategoryForm()" class="flex-1 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">Cancel</button>
+                </div>
+              </div>
+            </div>
+            <ul id="cats-list" class="divide-y divide-gray-100 dark:divide-gray-700"></ul>
+            <div id="cats-empty" class="hidden py-12 text-center text-gray-400 dark:text-gray-500 text-sm">No categories yet.</div>
+          </div>
+
+          <!-- Subcategories -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <h2 class="font-semibold" id="subcat-panel-title">Subcategories</h2>
+              <button id="btn-add-subcat" onclick="showAddSubcatForm()" class="hidden text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors">+ Add</button>
+            </div>
+            <div id="subcat-add-form" class="hidden px-5 py-4 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-800">
+              <div class="flex gap-2">
+                <input id="new-subcat-name" type="text" placeholder="Subcategory name"
+                  class="flex-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500" />
+                <button onclick="addSubcategory()" class="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium">Add</button>
+                <button onclick="hideSubcatForm()" class="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">Cancel</button>
+              </div>
+            </div>
+            <div id="subcat-placeholder" class="py-12 text-center text-gray-400 dark:text-gray-500 text-sm">Select a category to view subcategories.</div>
+            <ul id="subcats-list" class="hidden divide-y divide-gray-100 dark:divide-gray-700"></ul>
+            <div id="subcats-empty" class="hidden py-12 text-center text-gray-400 dark:text-gray-500 text-sm">No subcategories yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ─ UPLOADS ─ -->
+      <section id="section-uploads" class="hidden p-4 md:p-6 space-y-6">
+        <!-- Drop zones -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="dropzone" data-bank="bankinter_debit">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 text-center cursor-pointer hover:border-indigo-400 transition-colors"
+              ondragover="event.preventDefault(); this.classList.add('drag-over')"
+              ondragleave="this.classList.remove('drag-over')"
+              ondrop="handleDrop(event,'bankinter_debit')"
+              onclick="triggerFileInput('bankinter_debit')">
+              <svg class="w-8 h-8 mx-auto mb-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+              <p class="font-semibold text-sm">Bankinter Debit</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Drag & drop .xlsx or .csv or click</p>
+              <div id="upload-status-bankinter_debit" class="mt-2 text-xs"></div>
+            </div>
+          </div>
+          <div class="dropzone" data-bank="bankinter_credit">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 text-center cursor-pointer hover:border-indigo-400 transition-colors"
+              ondragover="event.preventDefault(); this.classList.add('drag-over')"
+              ondragleave="this.classList.remove('drag-over')"
+              ondrop="handleDrop(event,'bankinter_credit')"
+              onclick="triggerFileInput('bankinter_credit')">
+              <svg class="w-8 h-8 mx-auto mb-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+              <p class="font-semibold text-sm">Bankinter Credit</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Drag & drop .xlsx or .csv or click</p>
+              <div id="upload-status-bankinter_credit" class="mt-2 text-xs"></div>
+            </div>
+          </div>
+          <div class="dropzone" data-bank="hapoalim">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-600 p-6 text-center cursor-pointer hover:border-indigo-400 transition-colors"
+              ondragover="event.preventDefault(); this.classList.add('drag-over')"
+              ondragleave="this.classList.remove('drag-over')"
+              ondrop="handleDrop(event,'hapoalim')"
+              onclick="triggerFileInput('hapoalim')">
+              <svg class="w-8 h-8 mx-auto mb-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+              <p class="font-semibold text-sm">Bank Hapoalim</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Drag & drop .xlsx or .csv or click</p>
+              <div id="upload-status-hapoalim" class="mt-2 text-xs"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Hidden file inputs -->
+        <input type="file" id="file-bankinter_debit" accept=".xlsx,.xls,.csv" class="hidden" onchange="uploadFile(this,'bankinter_debit')">
+        <input type="file" id="file-bankinter_credit" accept=".xlsx,.xls,.csv" class="hidden" onchange="uploadFile(this,'bankinter_credit')">
+        <input type="file" id="file-hapoalim" accept=".xlsx,.xls,.csv" class="hidden" onchange="uploadFile(this,'hapoalim')">
+
+        <!-- Upload history -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+          <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+            <h2 class="font-semibold">Upload History</h2>
+          </div>
+          <div id="uploads-spinner" class="flex justify-center py-12"><div class="spinner"></div></div>
+          <div id="uploads-table-wrap" class="hidden overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-gray-50 dark:bg-gray-700/50 text-xs font-medium text-gray-500 uppercase">
+                  <th class="px-4 py-3 text-left">Date</th>
+                  <th class="px-4 py-3 text-left">Bank</th>
+                  <th class="px-4 py-3 text-left">File</th>
+                  <th class="px-4 py-3 text-right">Rows</th>
+                  <th class="px-4 py-3 text-left">Date Range</th>
+                  <th class="px-4 py-3 text-left">Uploaded By</th>
+                </tr>
+              </thead>
+              <tbody id="uploads-tbody" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody>
+            </table>
+          </div>
+          <div id="uploads-empty" class="hidden py-12 text-center text-gray-400 dark:text-gray-500 text-sm">
+            No uploads yet. Upload your first bank file above.
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- BOTTOM TABS (mobile) -->
+  <nav class="md:hidden flex border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-30 shrink-0">
+    <button onclick="showView('dashboard')" id="tab-dashboard" class="tab-btn flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Dashboard
+    </button>
+    <button onclick="showView('transactions')" id="tab-transactions" class="tab-btn flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Transactions
+    </button>
+    <button onclick="showView('categories')" id="tab-categories" class="tab-btn flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 10V5a2 2 0 012-2z"/></svg>
+      Categories
+    </button>
+    <button onclick="showView('uploads')" id="tab-uploads" class="tab-btn flex-1 py-3 flex flex-col items-center gap-1 text-xs font-medium">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+      Uploads
+    </button>
+  </nav>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     ADD TRANSACTION SLIDE PANEL
+════════════════════════════════════════════════════════ -->
+<div id="add-txn-overlay" class="hidden fixed inset-0 bg-black/40 z-40" onclick="closeAddTxnPanel()"></div>
+<div id="add-txn-panel" class="slide-panel fixed top-0 right-0 h-full w-full sm:w-96 bg-white dark:bg-gray-800 shadow-2xl z-50 overflow-y-auto">
+  <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+    <h3 class="font-semibold text-base">Add Transaction</h3>
+    <button onclick="closeAddTxnPanel()" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div class="p-5 space-y-4">
+    <div>
+      <label class="block text-sm font-medium mb-1">Date <span class="text-red-500">*</span></label>
+      <input id="add-txn-date" type="date" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500" />
+    </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">Bank Source <span class="text-red-500">*</span></label>
+      <select id="add-txn-bank" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500">
+        <option value="bankinter_debit">Bankinter Debit</option>
+        <option value="bankinter_credit">Bankinter Credit</option>
+        <option value="hapoalim">Bank Hapoalim</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">Description <span class="text-red-500">*</span></label>
+      <input id="add-txn-desc" type="text" placeholder="Transaction description"
+        class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500" />
+    </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">Merchant</label>
+      <input id="add-txn-merchant" type="text" placeholder="Optional merchant name"
+        class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500" />
+    </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">Amount <span class="text-red-500">*</span></label>
+      <input id="add-txn-amount" type="number" step="0.01" placeholder="-100.00 (negative = expense)"
+        class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500" />
+    </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">Category</label>
+      <select id="add-txn-cat" onchange="populateSubcatSelect('add-txn-subcat','add-txn-cat')" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500">
+        <option value="">-- Select category --</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">Subcategory</label>
+      <select id="add-txn-subcat" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500">
+        <option value="">-- Select subcategory --</option>
+      </select>
+    </div>
+    <div>
+      <label class="block text-sm font-medium mb-1">Notes</label>
+      <textarea id="add-txn-notes" rows="2" placeholder="Optional notes"
+        class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 resize-none"></textarea>
+    </div>
+    <button onclick="submitAddTransaction()"
+      class="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm transition-colors">
+      Save Transaction
+    </button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONFIG & STATE
+// ═══════════════════════════════════════════════════════
+const CONFIG = { API_BASE: 'https://family-finance-wyik.onrender.com' };
+
+let state = {
+  token: null,
+  displayName: null,
+  currentView: 'dashboard',
+  currentMonth: null,
+  currentBank: '',
+  categories: [],
+  currentPage: 1,
+};
+
+let _settings = {};
+
+let currentTxnPage = 1;
+let selectedCategoryId = null;
+
+// ═══════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════
+function fmt(amount) {
+  const n = parseFloat(amount);
+  return '€' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function fmtSigned(amount) {
+  const n = parseFloat(amount);
+  const s = '€' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n < 0 ? '-' + s : '+' + s;
+}
+
+function fmtDate(d) {
+  if (!d) return '';
+  return d.slice(0, 10);
+}
+
+function bankLabel(code) {
+  const map = { bankinter_debit: 'BK Debit', bankinter_credit: 'BK Credit', hapoalim: 'Hapoalim' };
+  return map[code] || code;
+}
+
+function getCurrentMonth() {
+  return document.getElementById('month-select').value;
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════
+//  MONTH SELECTOR
+// ═══════════════════════════════════════════════════════
+function buildMonthOptions(targetId) {
+  const sel = document.getElementById(targetId);
+  if (!sel) return;
+  sel.innerHTML = '';
+  const now = new Date();
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = label;
+    if (i === 0) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function changeMonth(delta) {
+  const sel = document.getElementById('month-select');
+  const idx = sel.selectedIndex;
+  const newIdx = Math.max(0, Math.min(sel.options.length - 1, idx - delta));
+  sel.selectedIndex = newIdx;
+  onMonthChange();
+}
+
+function onMonthChange() {
+  const month = getCurrentMonth();
+  // Sync txn filter month
+  const txnSel = document.getElementById('txn-filter-month');
+  if (txnSel) txnSel.value = month;
+  refreshCurrentView();
+}
+
+function onBankChange() {
+  state.currentBank = document.getElementById('navbar-bank').value;
+  refreshCurrentView();
+}
+
+function refreshCurrentView() {
+  if (state.currentView === 'dashboard') loadDashboard();
+  if (state.currentView === 'transactions') loadTransactions(1);
+}
+
+// ═══════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════
+function showToast(msg, type='info') {
+  const colors = {
+    info:    'bg-indigo-600 text-white',
+    success: 'bg-emerald-600 text-white',
+    error:   'bg-red-600 text-white',
+    warning: 'bg-amber-500 text-white',
+  };
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium toast-enter ${colors[type] || colors.info}`;
+  el.innerHTML = `<span class="flex-1">${escHtml(msg)}</span><button onclick="this.parentElement.remove()" class="opacity-70 hover:opacity-100 text-lg leading-none">&times;</button>`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ═══════════════════════════════════════════════════════
+//  API HELPER
+// ═══════════════════════════════════════════════════════
+async function api(path, opts = {}) {
+  const token = localStorage.getItem('ff_token');
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (opts.formData) {
+    delete headers['Content-Type'];
+  }
+  const res = await fetch(CONFIG.API_BASE + path, {
+    method: opts.method || 'GET',
+    headers,
+    body: opts.formData ? opts.formData : (opts.body ? JSON.stringify(opts.body) : undefined),
+  });
+  if (res.status === 204) return null;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+  return data;
+}
+
+// ═══════════════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════════════
+function showRegister() {
+  document.getElementById('login-form').classList.add('hidden');
+  document.getElementById('register-form').classList.remove('hidden');
+}
+function showLogin() {
+  document.getElementById('register-form').classList.add('hidden');
+  document.getElementById('login-form').classList.remove('hidden');
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('btn-login');
+  errEl.classList.add('hidden');
+  btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px"></div>';
+  btn.disabled = true;
+  try {
+    const data = await api('/auth/login', { method: 'POST', body: { email, password } });
+    localStorage.setItem('ff_token', data.access_token);
+    localStorage.setItem('ff_display_name', data.display_name || data.email);
+    initApp();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.innerHTML = '<span>Sign In</span>';
+    btn.disabled = false;
+  }
+}
+
+async function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const errEl = document.getElementById('reg-error');
+  errEl.classList.add('hidden');
+  try {
+    await api('/auth/register', { method: 'POST', body: { email, password, display_name: name } });
+    showToast('Registration successful! Please check your email to confirm.', 'success');
+    showLogin();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.classList.remove('hidden');
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('ff_token');
+  localStorage.removeItem('ff_display_name');
+  document.getElementById('view-login').classList.remove('hidden');
+  document.getElementById('view-app').classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+function initApp() {
+  document.getElementById('view-login').classList.add('hidden');
+  document.getElementById('view-app').classList.remove('hidden');
+  document.getElementById('navbar-username').textContent = localStorage.getItem('ff_display_name') || '';
+  buildMonthOptions('month-select');
+  buildMonthOptions('txn-filter-month');
+  loadCategories().then(() => {
+    populateCategoryDropdown('add-txn-cat');
+    populateSubcatFilterDropdown();
+    showView('dashboard');
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════
+function showView(v) {
+  state.currentView = v;
+  const views = ['dashboard','transactions','categories','uploads'];
+  views.forEach(name => {
+    const section = document.getElementById(`section-${name}`);
+    if (section) section.classList.toggle('hidden', name !== v);
+    const navBtn = document.getElementById(`nav-${name}`);
+    if (navBtn) {
+      navBtn.classList.toggle('bg-indigo-50', name === v);
+      navBtn.classList.toggle('dark:bg-indigo-900/30', name === v);
+      navBtn.classList.toggle('text-indigo-700', name === v);
+      navBtn.classList.toggle('dark:text-indigo-300', name === v);
+      navBtn.classList.toggle('text-gray-600', name !== v);
+      navBtn.classList.toggle('dark:text-gray-400', name !== v);
+    }
+    const tabBtn = document.getElementById(`tab-${name}`);
+    if (tabBtn) {
+      tabBtn.classList.toggle('text-indigo-600', name === v);
+      tabBtn.classList.toggle('dark:text-indigo-400', name === v);
+      tabBtn.classList.toggle('text-gray-400', name !== v);
+      tabBtn.classList.toggle('dark:text-gray-500', name !== v);
+    }
+  });
+  if (v === 'dashboard') loadDashboard();
+  if (v === 'transactions') loadTransactions(1);
+  if (v === 'categories') renderCategoryView();
+  if (v === 'uploads') loadUploads();
+}
+
+function goToReview() {
+  showView('dashboard');
+  document.getElementById('review-panel').classList.remove('hidden');
+}
+
+// ═══════════════════════════════════════════════════════
+//  CATEGORIES (shared state)
+// ═══════════════════════════════════════════════════════
+async function loadCategories() {
+  try {
+    state.categories = await api('/categories');
+  } catch(e) {
+    console.error('Failed to load categories', e);
+    state.categories = [];
+  }
+}
+
+function populateCategoryDropdown(selectId, selectedCatId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">-- Category --</option>';
+  state.categories.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    if (selectedCatId && c.id == selectedCatId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  if (!selectedCatId && cur) sel.value = cur;
+}
+
+function populateSubcatSelect(subcatSelId, catSelId, selectedSubcatId) {
+  const catSel = document.getElementById(catSelId);
+  const subSel = document.getElementById(subcatSelId);
+  if (!catSel || !subSel) return;
+  const catId = parseInt(catSel.value);
+  subSel.innerHTML = '<option value="">-- Subcategory --</option>';
+  if (!catId) return;
+  const cat = state.categories.find(c => c.id === catId);
+  if (cat && cat.subcategories) {
+    cat.subcategories.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name;
+      if (selectedSubcatId && s.id == selectedSubcatId) opt.selected = true;
+      subSel.appendChild(opt);
+    });
+  }
+}
+
+function populateSubcatFilterDropdown() {
+  const sel = document.getElementById('txn-filter-subcat');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">All</option>';
+  state.categories.forEach(c => {
+    if (c.subcategories && c.subcategories.length) {
+      const grp = document.createElement('optgroup');
+      grp.label = c.name;
+      c.subcategories.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        grp.appendChild(opt);
+      });
+      sel.appendChild(grp);
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════════
+async function loadSettings() {
+  try {
+    _settings = await api('/settings');
+  } catch(e) {
+    _settings = {};
+  }
+}
+
+async function loadDashboard() {
+  document.getElementById('dashboard-spinner').classList.remove('hidden');
+  document.getElementById('dashboard-content').classList.add('hidden');
+  const month = getCurrentMonth();
+  try {
+    const [data] = await Promise.all([
+      api(`/dashboard?month=${month}`),
+      loadSettings(),
+    ]);
+    renderDashboard(data);
+    // Load review transactions if needed
+    if (data.needs_review_count > 0) {
+      loadReviewTransactions(month);
+    } else {
+      document.getElementById('review-panel').classList.add('hidden');
+    }
+  } catch(e) {
+    showToast('Failed to load dashboard: ' + e.message, 'error');
+  } finally {
+    document.getElementById('dashboard-spinner').classList.add('hidden');
+    document.getElementById('dashboard-content').classList.remove('hidden');
+  }
+}
+
+function renderDashboard(data) {
+  // Balance from settings (manually maintained)
+  const balanceVal = parseFloat(_settings['current_balance'] || 0);
+  document.getElementById('dash-balance').textContent = fmt(balanceVal);
+  // Income from settings keyed by month
+  const month = getCurrentMonth();
+  const incomeVal = parseFloat(_settings[`income_${month}`] || 0);
+  document.getElementById('dash-income').textContent = fmt(incomeVal);
+  const expEl = document.getElementById('dash-expenses');
+  expEl.textContent = fmt(data.total_expenses);
+  expEl.className = 'text-2xl font-bold mt-1 ' + (data.total_expenses < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-200');
+  document.getElementById('dash-review').textContent = data.needs_review_count;
+
+  // Review badge
+  const badge = document.getElementById('review-badge');
+  const badgeCount = document.getElementById('review-badge-count');
+  if (data.needs_review_count > 0) {
+    badge.classList.remove('hidden');
+    badge.classList.add('flex');
+    badgeCount.textContent = data.needs_review_count;
+  } else {
+    badge.classList.add('hidden');
+    badge.classList.remove('flex');
+  }
+
+  // Category table
+  const tbl = document.getElementById('category-table');
+  const tbody = document.getElementById('category-tbody');
+  const empty = document.getElementById('category-empty');
+  if (!data.by_category || data.by_category.length === 0) {
+    tbl.classList.add('hidden');
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  tbl.classList.remove('hidden');
+  tbody.innerHTML = data.by_category.map(cat => {
+    const subRows = (cat.subcategories || []).map(s => `
+      <tr class="border-b border-gray-50 dark:border-gray-700/50">
+        <td class="pl-12 pr-5 py-1.5 text-gray-500 dark:text-gray-400">${escHtml(s.subcategory)}</td>
+        <td class="px-5 py-1.5 text-right text-gray-600 dark:text-gray-300">${fmt(s.amount)}</td>
+        <td class="px-5 py-1.5 text-right text-gray-400 dark:text-gray-500">${s.pct}%</td>
+      </tr>`).join('');
+    return `
+      <tr class="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/20">
+        <td class="px-5 py-2.5">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${cat.color}"></span>
+            <span class="font-semibold text-gray-800 dark:text-gray-100">${escHtml(cat.category)}</span>
+          </div>
+        </td>
+        <td class="px-5 py-2.5 text-right font-semibold text-gray-800 dark:text-gray-100">${fmt(cat.amount)}</td>
+        <td class="px-5 py-2.5 text-right text-gray-500 dark:text-gray-400">${cat.pct}%</td>
+      </tr>
+      ${subRows}`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  EDITABLE SETTINGS (Balance & Income)
+// ═══════════════════════════════════════════════════════
+function startEditSetting(key, elemId) {
+  const current = parseFloat(_settings[key] || 0);
+  document.getElementById(elemId + '-input').value = current.toFixed(2);
+  document.getElementById(elemId + '-display').classList.add('hidden');
+  document.getElementById(elemId + '-edit').classList.remove('hidden');
+  document.getElementById(elemId + '-input').focus();
+}
+
+async function commitSetting(key, elemId) {
+  const editDiv = document.getElementById(elemId + '-edit');
+  if (editDiv.classList.contains('hidden')) return; // already committed
+  const input = document.getElementById(elemId + '-input');
+  const val = parseFloat(input.value);
+  if (isNaN(val)) { cancelEditSetting(elemId); return; }
+  editDiv.classList.add('hidden');
+  document.getElementById(elemId + '-display').classList.remove('hidden');
+  document.getElementById(elemId).textContent = fmt(val);
+  try {
+    await api(`/settings/${key}`, { method: 'PUT', body: { value: String(val) } });
+    _settings[key] = String(val);
+  } catch(e) {
+    showToast('Failed to save: ' + e.message, 'error');
+  }
+}
+
+function cancelEditSetting(elemId) {
+  document.getElementById(elemId + '-edit').classList.add('hidden');
+  document.getElementById(elemId + '-display').classList.remove('hidden');
+}
+
+function startEditIncome() {
+  const month = getCurrentMonth();
+  startEditSetting(`income_${month}`, 'dash-income');
+}
+
+function commitIncome() {
+  const month = getCurrentMonth();
+  commitSetting(`income_${month}`, 'dash-income');
+}
+
+
+async function loadReviewTransactions(month) {
+  try {
+    const data = await api(`/transactions?needs_review=true&month=${month}&page_size=100`);
+    renderReviewTable(data.transactions || []);
+  } catch(e) {
+    console.error('Failed to load review transactions', e);
+  }
+}
+
+function renderReviewTable(txns) {
+  const panel = document.getElementById('review-panel');
+  const tbl = document.getElementById('review-table');
+  if (!txns.length) {
+    panel.classList.add('hidden');
+    return;
+  }
+  panel.classList.remove('hidden');
+  tbl.innerHTML = `
+    <table class="w-full text-sm min-w-max">
+      <thead>
+        <tr class="text-xs font-medium text-amber-700 dark:text-amber-400 uppercase">
+          <th class="px-4 py-2 text-left">Date</th>
+          <th class="px-4 py-2 text-left">Bank</th>
+          <th class="px-4 py-2 text-left">Description</th>
+          <th class="px-4 py-2 text-right">Amount</th>
+          <th class="px-4 py-2 text-left">Category</th>
+          <th class="px-4 py-2 text-left">Subcategory</th>
+          <th class="px-4 py-2 text-left">Notes</th>
+          <th class="px-4 py-2 text-center">Save</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-amber-100 dark:divide-amber-900/30">
+        ${txns.map(t => {
+          const sub = t.subcategories;
+          const catId = sub ? sub.category_id : '';
+          const subId = sub ? sub.id : '';
+          const catOpts = state.categories.map(c =>
+            `<option value="${c.id}" ${c.id == catId ? 'selected' : ''}>${escHtml(c.name)}</option>`
+          ).join('');
+          const cat = state.categories.find(c => c.id == catId);
+          const subOpts = cat && cat.subcategories ? cat.subcategories.map(s =>
+            `<option value="${s.id}" ${s.id == subId ? 'selected' : ''}>${escHtml(s.name)}</option>`
+          ).join('') : '';
+          return `
+          <tr id="review-row-${t.id}">
+            <td class="px-4 py-2 whitespace-nowrap text-xs">${fmtDate(t.txn_date)}</td>
+            <td class="px-4 py-2 whitespace-nowrap text-xs">${bankLabel(t.bank_source)}</td>
+            <td class="px-4 py-2 text-xs"><div class="truncate" style="max-width:400px" title="${escHtml(t.description)}">${escHtml(t.description)}</div></td>
+            <td class="px-4 py-2 text-right whitespace-nowrap font-medium text-xs ${parseFloat(t.amount) < 0 ? 'text-red-600' : 'text-emerald-600'}">${fmtSigned(t.amount)}</td>
+            <td class="px-4 py-2">
+              <select id="rv-cat-${t.id}" onchange="onReviewCatChange(${t.id})"
+                class="text-xs border border-amber-200 dark:border-amber-700 rounded px-1.5 py-1 bg-white dark:bg-gray-700 min-w-[110px]">
+                <option value="">-- Cat --</option>${catOpts}
+              </select>
+            </td>
+            <td class="px-4 py-2">
+              <select id="rv-sub-${t.id}"
+                class="text-xs border border-amber-200 dark:border-amber-700 rounded px-1.5 py-1 bg-white dark:bg-gray-700 min-w-[110px]">
+                <option value="">-- Sub --</option>${subOpts}
+              </select>
+            </td>
+            <td class="px-4 py-2">
+              <input type="text" id="rv-notes-${t.id}" value="${escHtml(t.notes||'')}" placeholder="Notes"
+                class="text-xs border border-amber-200 dark:border-amber-700 rounded px-1.5 py-1 bg-white dark:bg-gray-700 w-28" />
+            </td>
+            <td class="px-4 py-2 text-center">
+              <button onclick="saveReview(${t.id})"
+                class="px-3 py-1 rounded bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium">Save</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+function onReviewCatChange(txnId) {
+  const catSel = document.getElementById(`rv-cat-${txnId}`);
+  const subSel = document.getElementById(`rv-sub-${txnId}`);
+  const catId = parseInt(catSel.value);
+  subSel.innerHTML = '<option value="">-- Sub --</option>';
+  if (catId) {
+    const cat = state.categories.find(c => c.id === catId);
+    if (cat && cat.subcategories) {
+      cat.subcategories.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        subSel.appendChild(opt);
+      });
+    }
+  }
+}
+
+async function saveReview(txnId) {
+  const subId = document.getElementById(`rv-sub-${txnId}`).value;
+  const notes = document.getElementById(`rv-notes-${txnId}`).value;
+  const update = { needs_review: false };
+  if (subId) update.subcategory_id = parseInt(subId);
+  if (notes) update.notes = notes;
+  try {
+    await api(`/transactions/${txnId}`, { method: 'PUT', body: update });
+    const row = document.getElementById(`review-row-${txnId}`);
+    if (row) row.remove();
+    showToast('Saved!', 'success');
+    // Refresh dashboard summary
+    loadDashboard();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  TRANSACTIONS
+// ═══════════════════════════════════════════════════════
+async function loadTransactions(page) {
+  currentTxnPage = page;
+  document.getElementById('txn-spinner').classList.remove('hidden');
+  document.getElementById('txn-table-wrap').classList.add('hidden');
+  document.getElementById('txn-empty').classList.add('hidden');
+  document.getElementById('txn-pagination').classList.add('hidden');
+
+  const month = document.getElementById('txn-filter-month').value;
+  const bank = document.getElementById('txn-filter-bank').value;
+  const subcat = document.getElementById('txn-filter-subcat').value;
+  const unreviewed = document.getElementById('txn-filter-unreviewed').checked;
+  const dupes = document.getElementById('txn-filter-dupes').checked;
+
+  let url = `/transactions?page=${page}&page_size=50`;
+  if (month) url += `&month=${month}`;
+  if (bank) url += `&bank_source=${bank}`;
+  if (subcat) url += `&subcategory_id=${subcat}`;
+  if (unreviewed) url += `&needs_review=true`;
+  if (dupes) url += `&show_duplicates=true`;
+
+  try {
+    const data = await api(url);
+    const txns = data.transactions || [];
+    renderTxnTable(txns);
+    renderPagination(page, txns.length);
+  } catch(e) {
+    showToast('Failed to load transactions: ' + e.message, 'error');
+  } finally {
+    document.getElementById('txn-spinner').classList.add('hidden');
+  }
+}
+
+function renderTxnTable(txns) {
+  const tbody = document.getElementById('txn-tbody');
+  const wrap = document.getElementById('txn-table-wrap');
+  const empty = document.getElementById('txn-empty');
+  if (!txns.length) {
+    empty.classList.remove('hidden');
+    return;
+  }
+  wrap.classList.remove('hidden');
+  tbody.innerHTML = txns.map(t => {
+    const sub = t.subcategories;
+    const cat = sub ? sub.categories : null;
+    const amtClass = parseFloat(t.amount) < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400';
+    const dupBadge = t.is_duplicate ? '<span class="ml-1 px-1 py-0.5 text-xs bg-yellow-100 text-yellow-700 rounded">dup</span>' : '';
+    const reviewBadge = t.needs_review ? '<span class="ml-1 px-1 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">review</span>' : '';
+    return `
+      <tr id="txn-row-${t.id}" class="hover:bg-gray-50 dark:hover:bg-gray-700/20">
+        <td class="px-4 py-3 text-sm whitespace-nowrap">${fmtDate(t.txn_date)}</td>
+        <td class="px-4 py-3 text-xs">
+          <span class="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">${bankLabel(t.bank_source)}</span>
+        </td>
+        <td class="px-4 py-3 text-sm">
+          <span class="truncate block" style="max-width:400px" title="${escHtml(t.description)}">${escHtml(t.description)}</span>
+          ${dupBadge}${reviewBadge}
+        </td>
+        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escHtml(t.merchant_name||'')}</td>
+        <td class="px-4 py-3 text-sm text-right font-semibold ${amtClass} whitespace-nowrap">${fmtSigned(t.amount)}</td>
+        <td class="px-4 py-3 text-xs">
+          ${cat ? `<span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:${cat.color}"></span>${escHtml(cat.name)}</span>` : '<span class="text-gray-400">—</span>'}
+        </td>
+        <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">${sub ? escHtml(sub.name) : '<span class="text-gray-400">—</span>'}</td>
+        <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[100px] truncate">${escHtml(t.notes||'')}</td>
+        <td class="px-4 py-3 text-center">
+          <div class="flex items-center justify-center gap-1">
+            <button onclick="openEditRow(${t.id})" title="Edit"
+              class="p-1 rounded hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-indigo-500 hover:text-indigo-700">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            </button>
+            <button onclick="deleteTxn(${t.id})" title="Delete"
+              class="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-red-400 hover:text-red-600">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+      <tr id="edit-row-${t.id}" class="hidden bg-indigo-50 dark:bg-indigo-900/10">
+        <td colspan="9" class="px-4 py-4">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label class="block text-xs font-medium mb-1">Category</label>
+              <select id="edit-cat-${t.id}" onchange="populateSubcatSelect('edit-sub-${t.id}','edit-cat-${t.id}', ${sub ? sub.id : 'null'})"
+                class="w-full text-sm border border-indigo-200 dark:border-indigo-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700">
+                <option value="">-- Category --</option>
+                ${state.categories.map(c => `<option value="${c.id}" ${cat && c.id == cat.id ? 'selected' : ''}>${escHtml(c.name)}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium mb-1">Subcategory</label>
+              <select id="edit-sub-${t.id}"
+                class="w-full text-sm border border-indigo-200 dark:border-indigo-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700">
+                <option value="">-- Subcategory --</option>
+                ${cat ? (state.categories.find(c=>c.id==cat.id)||{subcategories:[]}).subcategories.map(s =>
+                  `<option value="${s.id}" ${sub && s.id == sub.id ? 'selected' : ''}>${escHtml(s.name)}</option>`).join('') : ''}
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium mb-1">Merchant</label>
+              <input id="edit-merchant-${t.id}" type="text" value="${escHtml(t.merchant_name||'')}"
+                class="w-full text-sm border border-indigo-200 dark:border-indigo-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium mb-1">Notes</label>
+              <input id="edit-notes-${t.id}" type="text" value="${escHtml(t.notes||'')}"
+                class="w-full text-sm border border-indigo-200 dark:border-indigo-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-700" />
+            </div>
+          </div>
+          <div class="flex gap-2 mt-3">
+            <button onclick="saveEditRow(${t.id})" class="px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium">Save</button>
+            <button onclick="closeEditRow(${t.id})" class="px-4 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm">Cancel</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function renderPagination(page, count) {
+  const pag = document.getElementById('txn-pagination');
+  const info = document.getElementById('txn-paging-info');
+  const prevBtn = document.getElementById('btn-prev-page');
+  const nextBtn = document.getElementById('btn-next-page');
+  pag.classList.remove('hidden');
+  pag.classList.add('flex');
+  info.textContent = `Page ${page}`;
+  prevBtn.disabled = page <= 1;
+  nextBtn.disabled = count < 50;
+}
+
+function openEditRow(txnId) {
+  // Close any other open edit rows
+  document.querySelectorAll('[id^="edit-row-"]').forEach(r => r.classList.add('hidden'));
+  document.getElementById(`edit-row-${txnId}`).classList.remove('hidden');
+}
+function closeEditRow(txnId) {
+  document.getElementById(`edit-row-${txnId}`).classList.add('hidden');
+}
+
+async function saveEditRow(txnId) {
+  const catId = document.getElementById(`edit-cat-${txnId}`).value;
+  const subId = document.getElementById(`edit-sub-${txnId}`).value;
+  const merchant = document.getElementById(`edit-merchant-${txnId}`).value;
+  const notes = document.getElementById(`edit-notes-${txnId}`).value;
+  const update = {};
+  if (subId) update.subcategory_id = parseInt(subId);
+  if (merchant !== undefined) update.merchant_name = merchant;
+  if (notes !== undefined) update.notes = notes;
+  update.needs_review = false;
+  try {
+    await api(`/transactions/${txnId}`, { method: 'PUT', body: update });
+    showToast('Transaction updated', 'success');
+    closeEditRow(txnId);
+    loadTransactions(currentTxnPage);
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function deleteTxn(txnId) {
+  if (!confirm('Delete this transaction?')) return;
+  try {
+    await api(`/transactions/${txnId}`, { method: 'DELETE' });
+    showToast('Transaction deleted', 'success');
+    loadTransactions(currentTxnPage);
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ─── Add transaction panel ────────────────────────────
+function openAddTxnPanel() {
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('add-txn-date').value = today;
+  document.getElementById('add-txn-desc').value = '';
+  document.getElementById('add-txn-merchant').value = '';
+  document.getElementById('add-txn-amount').value = '';
+  document.getElementById('add-txn-notes').value = '';
+  populateCategoryDropdown('add-txn-cat');
+  document.getElementById('add-txn-subcat').innerHTML = '<option value="">-- Subcategory --</option>';
+  document.getElementById('add-txn-overlay').classList.remove('hidden');
+  document.getElementById('add-txn-panel').classList.add('open');
+}
+function closeAddTxnPanel() {
+  document.getElementById('add-txn-overlay').classList.add('hidden');
+  document.getElementById('add-txn-panel').classList.remove('open');
+}
+
+async function submitAddTransaction() {
+  const txn_date = document.getElementById('add-txn-date').value;
+  const bank_source = document.getElementById('add-txn-bank').value;
+  const description = document.getElementById('add-txn-desc').value.trim();
+  const merchant_name = document.getElementById('add-txn-merchant').value.trim() || null;
+  const amount = parseFloat(document.getElementById('add-txn-amount').value);
+  const subId = document.getElementById('add-txn-subcat').value;
+  const notes = document.getElementById('add-txn-notes').value.trim() || null;
+  if (!txn_date || !description || isNaN(amount)) {
+    showToast('Date, description, and amount are required.', 'warning');
+    return;
+  }
+  try {
+    await api('/transactions', { method: 'POST', body: {
+      txn_date, bank_source, description, merchant_name, amount,
+      subcategory_id: subId ? parseInt(subId) : null, notes, currency: 'EUR'
+    }});
+    showToast('Transaction added!', 'success');
+    closeAddTxnPanel();
+    loadTransactions(1);
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  CATEGORIES VIEW
+// ═══════════════════════════════════════════════════════
+async function renderCategoryView() {
+  document.getElementById('cats-spinner').classList.remove('hidden');
+  document.getElementById('cats-list').innerHTML = '';
+  document.getElementById('cats-empty').classList.add('hidden');
+  await loadCategories();
+  document.getElementById('cats-spinner').classList.add('hidden');
+  populateSubcatFilterDropdown();
+  populateCategoryDropdown('add-txn-cat');
+  const list = document.getElementById('cats-list');
+  const empty = document.getElementById('cats-empty');
+  if (!state.categories.length) {
+    empty.classList.remove('hidden');
+    return;
+  }
+  list.innerHTML = state.categories.map(c => `
+    <li id="catli-${c.id}" class="flex items-center px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer group ${selectedCategoryId === c.id ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}"
+        onclick="selectCategory(${c.id})">
+      <span class="w-3.5 h-3.5 rounded-full mr-3 shrink-0" style="background:${c.color}"></span>
+      <span class="flex-1 text-sm font-medium">${escHtml(c.name)}</span>
+      ${c.is_income ? '<span class="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-1.5 py-0.5 rounded-full mr-2">Income</span>' : ''}
+      <div class="hidden group-hover:flex gap-1">
+        <button onclick="event.stopPropagation(); editCategory(${c.id})" class="p-1 text-indigo-400 hover:text-indigo-600">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        </button>
+        <button onclick="event.stopPropagation(); deleteCategory(${c.id})" class="p-1 text-red-400 hover:text-red-600">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
+      </div>
+    </li>`).join('');
+
+  if (selectedCategoryId) selectCategory(selectedCategoryId);
+}
+
+function selectCategory(catId) {
+  selectedCategoryId = catId;
+  document.querySelectorAll('[id^="catli-"]').forEach(el => {
+    el.classList.remove('bg-indigo-50','dark:bg-indigo-900/20');
+  });
+  const li = document.getElementById(`catli-${catId}`);
+  if (li) { li.classList.add('bg-indigo-50','dark:bg-indigo-900/20'); }
+  const cat = state.categories.find(c => c.id === catId);
+  document.getElementById('subcat-panel-title').textContent = cat ? `${cat.name} — Subcategories` : 'Subcategories';
+  document.getElementById('btn-add-subcat').classList.remove('hidden');
+  document.getElementById('subcat-placeholder').classList.add('hidden');
+  renderSubcats(cat ? cat.subcategories : []);
+}
+
+function renderSubcats(subs) {
+  const list = document.getElementById('subcats-list');
+  const empty = document.getElementById('subcats-empty');
+  list.classList.remove('hidden');
+  if (!subs || !subs.length) {
+    empty.classList.remove('hidden');
+    list.innerHTML = '';
+    return;
+  }
+  empty.classList.add('hidden');
+  list.innerHTML = subs.map(s => `
+    <li class="flex items-center px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 group">
+      <span class="flex-1 text-sm">${escHtml(s.name)}</span>
+      <div class="hidden group-hover:flex gap-1">
+        <button onclick="editSubcategory(${s.id},'${escHtml(s.name)}')" class="p-1 text-indigo-400 hover:text-indigo-600">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        </button>
+        <button onclick="deleteSubcategory(${s.id})" class="p-1 text-red-400 hover:text-red-600">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
+      </div>
+    </li>`).join('');
+}
+
+function showAddCategoryForm() {
+  document.getElementById('cat-add-form').classList.remove('hidden');
+  document.getElementById('new-cat-name').focus();
+}
+function hideAddCategoryForm() {
+  document.getElementById('cat-add-form').classList.add('hidden');
+}
+async function addCategory() {
+  const name = document.getElementById('new-cat-name').value.trim();
+  const color = document.getElementById('new-cat-color').value;
+  const is_income = document.getElementById('new-cat-income').checked;
+  if (!name) { showToast('Name required', 'warning'); return; }
+  try {
+    await api('/categories', { method: 'POST', body: { name, color, is_income }});
+    showToast('Category added!', 'success');
+    hideAddCategoryForm();
+    renderCategoryView();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function editCategory(catId) {
+  const cat = state.categories.find(c => c.id === catId);
+  if (!cat) return;
+  const name = prompt('Category name:', cat.name);
+  if (!name) return;
+  try {
+    await api(`/categories/${catId}`, { method: 'PUT', body: { name }});
+    showToast('Updated!', 'success');
+    renderCategoryView();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function deleteCategory(catId) {
+  if (!confirm('Delete this category and all its subcategories?')) return;
+  try {
+    await api(`/categories/${catId}`, { method: 'DELETE' });
+    showToast('Deleted!', 'success');
+    if (selectedCategoryId === catId) selectedCategoryId = null;
+    renderCategoryView();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+function showAddSubcatForm() {
+  document.getElementById('subcat-add-form').classList.remove('hidden');
+  document.getElementById('new-subcat-name').focus();
+}
+function hideSubcatForm() {
+  document.getElementById('subcat-add-form').classList.add('hidden');
+}
+async function addSubcategory() {
+  const name = document.getElementById('new-subcat-name').value.trim();
+  if (!name || !selectedCategoryId) { showToast('Select a category and enter a name', 'warning'); return; }
+  try {
+    await api('/subcategories', { method: 'POST', body: { category_id: selectedCategoryId, name }});
+    showToast('Subcategory added!', 'success');
+    document.getElementById('new-subcat-name').value = '';
+    hideSubcatForm();
+    await loadCategories();
+    const cat = state.categories.find(c => c.id === selectedCategoryId);
+    renderSubcats(cat ? cat.subcategories : []);
+    populateSubcatFilterDropdown();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function editSubcategory(subId, currentName) {
+  const name = prompt('Subcategory name:', currentName);
+  if (!name) return;
+  try {
+    await api(`/subcategories/${subId}`, { method: 'PUT', body: { name }});
+    showToast('Updated!', 'success');
+    await loadCategories();
+    const cat = state.categories.find(c => c.id === selectedCategoryId);
+    renderSubcats(cat ? cat.subcategories : []);
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function deleteSubcategory(subId) {
+  if (!confirm('Delete this subcategory?')) return;
+  try {
+    await api(`/subcategories/${subId}`, { method: 'DELETE' });
+    showToast('Deleted!', 'success');
+    await loadCategories();
+    const cat = state.categories.find(c => c.id === selectedCategoryId);
+    renderSubcats(cat ? cat.subcategories : []);
+    populateSubcatFilterDropdown();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  UPLOADS
+// ═══════════════════════════════════════════════════════
+function triggerFileInput(bankSource) {
+  document.getElementById(`file-${bankSource}`).click();
+}
+
+function handleDrop(event, bankSource) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  const file = event.dataTransfer.files[0];
+  if (!file) return;
+  doUpload(file, bankSource);
+}
+
+function uploadFile(input, bankSource) {
+  if (!input.files[0]) return;
+  doUpload(input.files[0], bankSource);
+  input.value = '';
+}
+
+async function doUpload(file, bankSource) {
+  const statusEl = document.getElementById(`upload-status-${bankSource}`);
+  statusEl.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:auto"></div>';
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('bank_source', bankSource);
+  try {
+    const result = await api('/upload', { method: 'POST', formData: fd });
+    statusEl.innerHTML = `<span class="text-emerald-600 dark:text-emerald-400 font-medium">
+      ✓ ${result.imported} imported, ${result.skipped} skipped, ${result.needs_review} to review
+    </span>`;
+    showToast(`Imported ${result.imported} transactions (${result.needs_review} need review)`, 'success');
+    loadUploads();
+    // Refresh review badge
+    loadDashboard();
+  } catch(e) {
+    statusEl.innerHTML = `<span class="text-red-600 dark:text-red-400">Error: ${escHtml(e.message)}</span>`;
+    showToast('Upload failed: ' + e.message, 'error');
+  }
+}
+
+async function loadUploads() {
+  document.getElementById('uploads-spinner').classList.remove('hidden');
+  document.getElementById('uploads-table-wrap').classList.add('hidden');
+  document.getElementById('uploads-empty').classList.add('hidden');
+  try {
+    const uploads = await api('/uploads');
+    renderUploadsTable(uploads);
+  } catch(e) {
+    showToast('Failed to load uploads: ' + e.message, 'error');
+  } finally {
+    document.getElementById('uploads-spinner').classList.add('hidden');
+  }
+}
+
+function renderUploadsTable(uploads) {
+  const wrap = document.getElementById('uploads-table-wrap');
+  const empty = document.getElementById('uploads-empty');
+  if (!uploads.length) {
+    empty.classList.remove('hidden');
+    return;
+  }
+  wrap.classList.remove('hidden');
+  const tbody = document.getElementById('uploads-tbody');
+  tbody.innerHTML = uploads.map(u => {
+    const user = u.users;
+    const uploaderName = user ? (user.display_name || user.email) : '—';
+    return `
+      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/20">
+        <td class="px-4 py-3 text-sm">${fmtDate(u.created_at)}</td>
+        <td class="px-4 py-3 text-sm">
+          <span class="px-2 py-0.5 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">${bankLabel(u.bank_source)}</span>
+        </td>
+        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 max-w-[180px] truncate">${escHtml(u.filename||'')}</td>
+        <td class="px-4 py-3 text-sm text-right font-medium">${u.row_count||0}</td>
+        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${fmtDate(u.date_range_start)} – ${fmtDate(u.date_range_end)}</td>
+        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escHtml(uploaderName)}</td>
+      </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeAddTxnPanel();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    const panel = document.getElementById('add-txn-panel');
+    if (panel.classList.contains('open')) submitAddTransaction();
+  }
+});
+
+// ═══════════════════════════════════════════════════════
+//  BOOTSTRAP
+// ═══════════════════════════════════════════════════════
+(function() {
+  const token = localStorage.getItem('ff_token');
+  if (token) {
+    initApp();
+  }
+  // Enter key on login
+  document.getElementById('login-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLogin();
+  });
+})();
+</script>
+</body>
+</html>
