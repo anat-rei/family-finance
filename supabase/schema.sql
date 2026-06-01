@@ -37,7 +37,8 @@ CREATE TABLE uploads (
   row_count INTEGER,
   date_range_start DATE,
   date_range_end DATE,
-  created_at TIMESTAMPTZ DEFAULT now()
+  created_at TIMESTAMPTZ DEFAULT now(),
+  deleted_at TIMESTAMPTZ DEFAULT NULL
 );
 
 CREATE TABLE transactions (
@@ -57,8 +58,12 @@ CREATE TABLE transactions (
   notes TEXT,
   deleted_at TIMESTAMPTZ DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(txn_date, amount, description, bank_source)
+  -- partial unique index defined below (allows re-import after soft-delete)
 );
+
+CREATE UNIQUE INDEX transactions_unique_active
+  ON transactions(txn_date, amount, description, bank_source)
+  WHERE deleted_at IS NULL;
 
 INSERT INTO categories (name, color, is_income) VALUES
   ('House',      '#3b82f6', false),
@@ -73,11 +78,12 @@ INSERT INTO categories (name, color, is_income) VALUES
 
 INSERT INTO subcategories (category_id, name) VALUES
   (1, 'Mortgage'), (1, 'Electricity'), (1, 'Water'), (1, 'Internet'),
-  (2, 'General'),
+  (1, 'Condominium'), (1, 'House Ins'),
+  (2, 'General'), (2, 'Education'),
   (3, 'Gas'), (3, 'Uber'),
-  (4, 'Padel'), (4, 'Yoga'),
+  (4, 'Padel'), (4, 'Yoga'), (4, 'Ella gym'),
   (5, 'Supermarket'), (5, 'Eating out'),
   (6, 'General'),
   (7, 'General'),
   (8, 'Salary'), (8, 'Rental'),
-  (9, 'Uncategorized');
+  (9, 'Uncategorized'), (9, 'Shopping');

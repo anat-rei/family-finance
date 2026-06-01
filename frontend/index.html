@@ -465,8 +465,13 @@
 
         <!-- Upload history -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-          <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+          <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
             <h2 class="font-semibold">Upload History</h2>
+            <button onclick="runRecategorize()"
+              class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              Re-categorize uncategorized
+            </button>
           </div>
           <div id="uploads-spinner" class="flex justify-center py-12"><div class="spinner"></div></div>
           <div id="uploads-table-wrap" class="hidden overflow-x-auto">
@@ -479,6 +484,7 @@
                   <th class="px-4 py-3 text-right">Rows</th>
                   <th class="px-4 py-3 text-left">Date Range</th>
                   <th class="px-4 py-3 text-left">Uploaded By</th>
+                  <th class="px-4 py-3 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody id="uploads-tbody" class="divide-y divide-gray-100 dark:divide-gray-700"></tbody>
@@ -1605,8 +1611,36 @@ function renderUploadsTable(uploads) {
         <td class="px-4 py-3 text-sm text-right font-medium">${u.row_count||0}</td>
         <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${fmtDate(u.date_range_start)} – ${fmtDate(u.date_range_end)}</td>
         <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escHtml(uploaderName)}</td>
+        <td class="px-4 py-3 text-center">
+          <button onclick="deleteUpload(${u.id}, ${u.row_count||0})" title="Delete upload and all its transactions"
+            class="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-red-400 hover:text-red-600">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </td>
       </tr>`;
   }).join('');
+}
+
+async function runRecategorize() {
+  try {
+    const result = await api('/recategorize', { method: 'POST' });
+    showToast(`Re-categorized ${result.updated} of ${result.scanned} uncategorized transactions.`, 'success');
+    loadDashboard();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function deleteUpload(uploadId, rowCount) {
+  if (!confirm(`Delete this upload and all ${rowCount} of its transactions? This can be re-imported afterwards.`)) return;
+  try {
+    await api(`/uploads/${uploadId}`, { method: 'DELETE' });
+    showToast('Upload deleted. You can now re-import the file.', 'success');
+    loadUploads();
+    loadDashboard();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
 }
 
 // ═══════════════════════════════════════════════════════

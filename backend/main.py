@@ -157,7 +157,7 @@ def delete_subcategory(sub_id: int, user_id: str = Depends(get_current_user)):
 
 @app.get("/uploads")
 def list_uploads(user_id: str = Depends(get_current_user)):
-    uploads = supabase.table("uploads").select("*").order("created_at", desc=True).execute().data
+    uploads = supabase.table("uploads").select("*").is_("deleted_at", "null").order("created_at", desc=True).execute().data
     # Enrich with display_name from public users table
     user_ids = list({u["uploaded_by"] for u in uploads if u.get("uploaded_by")})
     if user_ids:
@@ -406,12 +406,52 @@ def get_dashboard(
     }
 
 
+# ── Recategorize ───────────────────────────────────────────────────────────────
+
+@app.post("/recategorize")
+def recategorize(user_id: str = Depends(get_current_user)):
+    """Re-run keyword matching on all uncategorized transactions."""
+    subs = supabase.table("subcategories").select("id,name").execute().data
+    subcategory_lookup = {s["name"]: s["id"] for s in subs}
+
+    txns = (
+        supabase.table("transactions")
+        .select("id,description,merchant_name")
+        .is_("subcategory_id", "null")
+        .is_("deleted_at", "null")
+        .execute().data
+    )
+
+    updated = 0
+    for t in txns:
+        subcat_name = _keyword_subcategory(t["description"])
+        if not subcat_name and t.get("merchant_name"):
+            subcat_name = _keyword_subcategory(t["merchant_name"])
+        if subcat_name and subcat_name in subcategory_lookup:
+            supabase.table("transactions").update({
+                "subcategory_id":   subcategory_lookup[subcat_name],
+                "auto_categorized": True,
+                "needs_review":     False,
+            }).eq("id", t["id"]).execute()
+            updated += 1
+
+    return {"updated": updated, "scanned": len(txns)}
+
+
 # ── Merchant map ───────────────────────────────────────────────────────────────
 
 @app.get("/merchant-map")
 def list_merchant_map(user_id: str = Depends(get_current_user)):
     res = supabase.table("merchant_map").select("*, subcategories(name, categories(name))").order("created_at", desc=True).execute()
     return res.data
+
+
+@app.delete("/uploads/{upload_id}", status_code=204)
+def delete_upload(upload_id: int, user_id: str = Depends(get_current_user)):
+    from datetime import datetime
+    now = datetime.utcnow().isoformat()
+    supabase.table("transactions").update({"deleted_at": now}).eq("upload_id", upload_id).is_("deleted_at", "null").execute()
+    supabase.table("uploads").update({"deleted_at": now}).eq("id", upload_id).execute()
 
 
 @app.delete("/merchant-map/{map_id}", status_code=204)
