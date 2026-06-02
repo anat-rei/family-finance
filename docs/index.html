@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Family Finance</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'media',
@@ -246,24 +247,61 @@
             </div>
           </div>
 
-          <!-- Category breakdown -->
+          <!-- Category breakdown — tabbed -->
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-              <h2 class="font-semibold text-base">Expenses by Category</h2>
+            <!-- Tab buttons -->
+            <div class="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex gap-1">
+              <button id="dash-tab-btn-overview" onclick="switchDashTab('overview')"
+                class="px-4 py-1.5 text-sm font-medium rounded-lg transition-colors bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                Overview
+              </button>
+              <button id="dash-tab-btn-charts" onclick="switchDashTab('charts')"
+                class="px-4 py-1.5 text-sm font-medium rounded-lg transition-colors text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                Charts
+              </button>
+              <button id="dash-tab-btn-trends" onclick="switchDashTab('trends')"
+                class="px-4 py-1.5 text-sm font-medium rounded-lg transition-colors text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                Trends
+              </button>
             </div>
-            <div class="overflow-x-auto">
-              <table id="category-table" class="w-full text-sm hidden">
-                <thead>
-                  <tr class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-100 dark:border-gray-700">
-                    <th class="px-5 py-2 text-left">Category / Subcategory</th>
-                    <th class="px-5 py-2 text-right">Amount</th>
-                    <th class="px-5 py-2 text-right w-16">%</th>
-                  </tr>
-                </thead>
-                <tbody id="category-tbody"></tbody>
-              </table>
+
+            <!-- Tab: Overview -->
+            <div id="dash-tab-overview">
+              <div class="overflow-x-auto">
+                <table id="category-table" class="w-full text-sm hidden">
+                  <thead>
+                    <tr class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-100 dark:border-gray-700">
+                      <th class="px-5 py-2 text-left">Category / Subcategory</th>
+                      <th class="px-5 py-2 text-right">Amount</th>
+                      <th class="px-5 py-2 text-right w-16">%</th>
+                    </tr>
+                  </thead>
+                  <tbody id="category-tbody"></tbody>
+                </table>
+              </div>
+              <div id="category-empty" class="hidden py-12 text-center text-gray-400 dark:text-gray-500 text-sm">No expense data for this period.</div>
             </div>
-            <div id="category-empty" class="hidden py-12 text-center text-gray-400 dark:text-gray-500 text-sm">No expense data for this period.</div>
+
+            <!-- Tab: Charts -->
+            <div id="dash-tab-charts" class="hidden p-5">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">By Category</p>
+                  <div style="position:relative;height:280px"><canvas id="chart-donut"></canvas></div>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Top Subcategories</p>
+                  <div style="position:relative;height:280px"><canvas id="chart-bar"></canvas></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab: Trends -->
+            <div id="dash-tab-trends" class="hidden p-5">
+              <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Monthly Expenses — Last 6 Months</p>
+              <div id="trends-spinner" class="hidden justify-center py-8"><div class="spinner"></div></div>
+              <div style="position:relative;height:320px"><canvas id="chart-trends"></canvas></div>
+            </div>
           </div>
 
           <!-- Review panel -->
@@ -599,6 +637,9 @@ let state = {
 };
 
 let _settings = {};
+let _lastDashData = null;
+let _dashCharts = {};
+let _currentDashTab = 'overview';
 
 let currentTxnPage = 1;
 let selectedCategoryId = null;
@@ -989,6 +1030,147 @@ function renderDashboard(data) {
       </tr>
       ${subRows}`;
   }).join('');
+
+  _lastDashData = data;
+  if (_currentDashTab === 'charts') renderCharts(data);
+}
+
+// ═══════════════════════════════════════════════════════
+//  DASHBOARD TABS & CHARTS
+// ═══════════════════════════════════════════════════════
+function switchDashTab(tab) {
+  _currentDashTab = tab;
+  ['overview', 'charts', 'trends'].forEach(t => {
+    document.getElementById(`dash-tab-${t}`).classList.toggle('hidden', t !== tab);
+    const btn = document.getElementById(`dash-tab-btn-${t}`);
+    const active = t === tab;
+    btn.className = `px-4 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+      active
+        ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+    }`;
+  });
+  if (tab === 'charts' && _lastDashData) renderCharts(_lastDashData);
+  if (tab === 'trends') renderTrends();
+}
+
+function renderCharts(data) {
+  if (_dashCharts.donut) { _dashCharts.donut.destroy(); _dashCharts.donut = null; }
+  if (_dashCharts.bar)   { _dashCharts.bar.destroy();   _dashCharts.bar = null; }
+
+  const cats = (data.by_category || []).filter(c => c.amount < 0);
+  if (!cats.length) return;
+
+  // Donut — by category
+  _dashCharts.donut = new Chart(document.getElementById('chart-donut'), {
+    type: 'doughnut',
+    data: {
+      labels: cats.map(c => c.category),
+      datasets: [{
+        data: cats.map(c => Math.abs(c.amount)),
+        backgroundColor: cats.map(c => c.color),
+        borderWidth: 2,
+        borderColor: 'rgba(255,255,255,0.8)',
+        hoverOffset: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 12, padding: 10, font: { size: 12 } } },
+        tooltip: { callbacks: { label: ctx => ` €${ctx.parsed.toFixed(2)}  (${cats[ctx.dataIndex].pct}%)` } }
+      }
+    }
+  });
+
+  // Horizontal bar — top subcategories
+  const subs = cats.flatMap(c =>
+    (c.subcategories || []).map(s => ({ label: s.subcategory, amount: Math.abs(s.amount), color: c.color }))
+  ).sort((a, b) => b.amount - a.amount).slice(0, 8);
+
+  _dashCharts.bar = new Chart(document.getElementById('chart-bar'), {
+    type: 'bar',
+    data: {
+      labels: subs.map(s => s.label),
+      datasets: [{
+        data: subs.map(s => s.amount),
+        backgroundColor: subs.map(s => s.color + 'bb'),
+        borderColor: subs.map(s => s.color),
+        borderWidth: 1, borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` €${ctx.parsed.x.toFixed(2)}` } }
+      },
+      scales: {
+        x: { ticks: { callback: v => '€' + v }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        y: { ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+async function renderTrends() {
+  if (_dashCharts.trends) { _dashCharts.trends.destroy(); _dashCharts.trends = null; }
+
+  const spinner = document.getElementById('trends-spinner');
+  spinner.classList.remove('hidden');
+  spinner.classList.add('flex');
+
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  try {
+    const results = await Promise.all(months.map(m => api(`/dashboard?month=${m}`)));
+    spinner.classList.add('hidden');
+    spinner.classList.remove('flex');
+
+    const labels = months.map(m => {
+      const [y, mo] = m.split('-');
+      return new Date(y, mo - 1).toLocaleString('default', { month: 'short', year: '2-digit' });
+    });
+
+    // Build one stacked dataset per category
+    const allCatNames = [...new Set(results.flatMap(r => (r.by_category || []).map(c => c.category)))];
+    const catColors = {};
+    results.forEach(r => (r.by_category || []).forEach(c => { catColors[c.category] = c.color; }));
+
+    const datasets = allCatNames.map(name => ({
+      label: name,
+      data: results.map(r => {
+        const cat = (r.by_category || []).find(c => c.category === name);
+        return cat ? Math.abs(cat.amount) : 0;
+      }),
+      backgroundColor: (catColors[name] || '#6b7280') + 'cc',
+      borderColor: catColors[name] || '#6b7280',
+      borderWidth: 1, borderRadius: 3,
+    }));
+
+    _dashCharts.trends = new Chart(document.getElementById('chart-trends'), {
+      type: 'bar',
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: €${ctx.parsed.y.toFixed(2)}` } }
+        },
+        scales: {
+          x: { stacked: true },
+          y: { stacked: true, ticks: { callback: v => '€' + v } }
+        }
+      }
+    });
+  } catch(e) {
+    spinner.classList.add('hidden');
+    spinner.classList.remove('flex');
+    showToast('Failed to load trends: ' + e.message, 'error');
+  }
 }
 
 // ═══════════════════════════════════════════════════════
