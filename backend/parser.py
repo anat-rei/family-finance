@@ -17,7 +17,7 @@ CREDIT_ALIASES = ["credit", "crédito", "credito", "entrada"]
 # NOTE: order matters — more-specific entries must come before shorter ones
 # (e.g. "Eating out" with "bolt food" before "Uber" with bare "bolt")
 KEYWORD_MAP = {
-    "Mortgage":          ["hipoteca", "mortgage", "crédito habitação", "habitacao", "loan payment"],
+    "Mortgage":          ["hipoteca", "mortgage", "crédito habitação", "habitacao", "emprestimo"],
     "Electricity":       ["edp", "endesa", "iberdrola", "eletricidade", "electricity"],
     "Water":             ["smas", "epal", "águas", "aguas", "water"],
     "Internet":          ["nos", "meo", "vodafone", "internet", "fibra", "fiber"],
@@ -25,24 +25,22 @@ KEYWORD_MAP = {
     "House Ins":         ["pagamento de seguros"],
     "Maintenance":       ["patricia rodrigues", "leroy merlin"],
     "Education":         ["ptb"],
+    "Padel":             ["padel", "pádel", "blue padel kourts"],
     "Ella gym":          ["g dram s cascais", "g dram", "dram s cascais"],
     "General_Girls":     ["school", "escola", "colégio", "colegio", "pediatr", "kids", "children"],
     "Gas":               ["galp", "bp", "repsol", "gasolina", "combustivel", "petrol", "fuel"],
     "Supermarket":       ["continente", "pingo doce", "lidl", "aldi", "minipreco", "minipreço",
                           "intermarché", "intermache", "mercadona", "froiz", "supermercado", "grocery",
-                          "talho lugar carne"],
+                          "talho lugar carne", "auchan", "el corte inglés", "mercado"],
     # Eating out BEFORE Uber so "bolt food" matches here before bare "bolt"
     "Eating out":        ["uber eats", "bolt food", "mcdonalds", "mcdonald's", "burger king",
                           "restaurant", "café", "cafe", "tasca", "starbucks",
-                          "pastelaria", "delivery", "glovo", "zomato", "just eat"],
+                          "pastelaria", "delivery", "glovo", "zomato", "just eat", "polo 1921"],
     "Uber":              ["uber", "bolt", "cabify"],
-    "Padel":             ["padel", "pádel"],
-    "Yoga":              ["yoga", "pilates", "studio"],
-    "Shopping":          ["amazon"],
+    "Shopping":          ["amazon", "fnac"],
     "Subscriptions":     ["claude.ai"],
     "General_Insurance": ["seguro", "insurance", "fidelidade", "allianz", "generali", "tranquilidade"],
-    "Salary":            ["salary", "salário", "salario", "ordenado", "vencimento", "wages", "payroll"],
-    "Rental":            ["renda", "rental", "arrendamento", "rent received", "tenancy"],
+    "Salary":            ["bloqstrxn"],
 }
 
 
