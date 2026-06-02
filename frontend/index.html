@@ -674,6 +674,8 @@ function onMonthChange() {
 
 function onBankChange() {
   state.currentBank = document.getElementById('navbar-bank').value;
+  const sectionFilter = document.getElementById('txn-filter-bank');
+  if (sectionFilter) sectionFilter.value = state.currentBank;
   refreshCurrentView();
 }
 
@@ -1035,7 +1037,7 @@ function commitIncome() {
 
 async function loadReviewTransactions(month) {
   try {
-    const data = await api(`/transactions?needs_review=true&month=${month}&page_size=100`);
+    const data = await api(`/transactions?needs_review=true&month=${month}&page_size=100&expenses_only=false`);
     renderReviewTable(data.transactions || []);
   } catch(e) {
     console.error('Failed to load review transactions', e);
