@@ -15,7 +15,7 @@ from models import (
     TransactionUpdate, TransactionCreate,
     SettingUpdate,
 )
-from parser import parse_excel
+from parser import parse_excel, _keyword_subcategory
 
 load_dotenv()
 
