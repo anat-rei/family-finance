@@ -41,7 +41,7 @@ KEYWORD_MAP = {
     "Subscriptions":     ["claude.ai"],
     "General_Insurance": ["seguro", "insurance", "fidelidade", "allianz", "generali", "tranquilidade"],
     "Salary":            ["bloqstrxn"],
-    "Via Verde":         ["03-TRANSACCOES BXV"],
+    "Via Verde":         ["03-transaccoes bxv"],
 }
 
 
