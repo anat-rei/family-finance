@@ -40,7 +40,7 @@ KEYWORD_MAP = {
     "Shopping":          ["amazon", "fnac", "toys"],
     "Subscriptions":     ["claude.ai"],
     "General_Insurance": ["seguro", "insurance", "fidelidade", "allianz", "generali", "tranquilidade"],
-    "Salary":            ["bloqstrxn"],
+    "Salary":            ["bloqstrx"],
     "Via Verde":         ["03-transaccoes bxv"],
 }
 

@@ -355,6 +355,17 @@ def get_dashboard(
     net            = total_income + total_expenses
     needs_review_count = sum(1 for t in txns if t.get("needs_review"))
 
+    # Monthly income = salary deposits only (positive amounts categorized as "Salary"),
+    # not every positive amount, since transfers from a person shouldn't count as income.
+    salary_income = 0.0
+    for t in txns:
+        amt = float(t["amount"])
+        if amt <= 0:
+            continue
+        s = t.get("subcategories")
+        if s and s.get("name") == "Salary":
+            salary_income += amt
+
     # Group by category / subcategory
     from collections import defaultdict
     cat_totals = defaultdict(lambda: {"amount": 0.0, "color": "#6b7280", "is_income": False, "subcats": defaultdict(float)})
@@ -398,6 +409,7 @@ def get_dashboard(
 
     return {
         "total_income":         total_income,
+        "salary_income":        salary_income,
         "total_expenses":       total_expenses,
         "net":                  net,
         "needs_review_count":   needs_review_count,
