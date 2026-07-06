@@ -217,23 +217,10 @@
                   onblur="commitSetting('current_balance','dash-balance')">
               </div>
             </div>
-            <!-- Monthly Income — editable -->
+            <!-- Monthly Income — derived from Salary transactions -->
             <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
-              <div class="flex items-center justify-between">
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Monthly Income</p>
-                <button onclick="startEditIncome()" class="text-gray-400 hover:text-indigo-500 transition-colors" title="Edit">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.172-8.172z"/></svg>
-                </button>
-              </div>
-              <div id="dash-income-display">
-                <p id="dash-income" class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">€0.00</p>
-              </div>
-              <div id="dash-income-edit" class="hidden mt-1 flex items-center gap-1">
-                <span class="text-xl font-bold text-gray-400">€</span>
-                <input id="dash-income-input" type="number" step="0.01" class="w-full text-xl font-bold border-b-2 border-indigo-400 bg-transparent focus:outline-none dark:text-white"
-                  onkeydown="if(event.key==='Enter')commitIncome();if(event.key==='Escape')cancelEditSetting('dash-income')"
-                  onblur="commitIncome()">
-              </div>
+              <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Monthly Income</p>
+              <p id="dash-income" class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">€0.00</p>
             </div>
             <!-- Total Expenses — calculated -->
             <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
@@ -1014,10 +1001,8 @@ function renderDashboard(data) {
   // Balance from settings (manually maintained)
   const balanceVal = parseFloat(_settings['current_balance'] || 0);
   document.getElementById('dash-balance').textContent = fmt(balanceVal);
-  // Income from settings keyed by month
-  const month = getCurrentMonth();
-  const incomeVal = parseFloat(_settings[`income_${month}`] || 0);
-  document.getElementById('dash-income').textContent = fmt(incomeVal);
+  // Income derived from Salary-categorized transactions for the month
+  document.getElementById('dash-income').textContent = fmt(data.salary_income);
   const expEl = document.getElementById('dash-expenses');
   expEl.textContent = fmt(data.total_expenses);
   expEl.className = 'text-2xl font-bold mt-1 ' + (data.total_expenses < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-200');
@@ -1292,7 +1277,7 @@ async function renderTrends() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  EDITABLE SETTINGS (Balance & Income)
+//  EDITABLE SETTINGS (Balance)
 // ═══════════════════════════════════════════════════════
 function startEditSetting(key, elemId) {
   const current = parseFloat(_settings[key] || 0);
@@ -1322,16 +1307,6 @@ async function commitSetting(key, elemId) {
 function cancelEditSetting(elemId) {
   document.getElementById(elemId + '-edit').classList.add('hidden');
   document.getElementById(elemId + '-display').classList.remove('hidden');
-}
-
-function startEditIncome() {
-  const month = getCurrentMonth();
-  startEditSetting(`income_${month}`, 'dash-income');
-}
-
-function commitIncome() {
-  const month = getCurrentMonth();
-  commitSetting(`income_${month}`, 'dash-income');
 }
 
 
