@@ -37,9 +37,9 @@ KEYWORD_MAP = {
                           "restaurant", "café", "cafe", "tasca", "starbucks",
                           "pastelaria", "delivery", "glovo", "zomato", "just eat", "polo 1921"],
     "Uber":              ["uber", "bolt", "cabify"],
-    "Shopping":          ["amazon", "fnac"],
+    "Shopping":          ["amazon", "fnac", "temu"],
     "Subscriptions":     ["claude.ai"],
-    "General_Insurance": ["seguro", "insurance", "fidelidade", "allianz", "generali", "tranquilidade"],
+    "General_Insurance": ["seguro", "insurance", "fidelidade", "allianz", "generali", "tranquilidade", "genki"],
     "Salary":            ["bloqstrx"],
     "Via Verde":         ["03-transaccoes bxv"],
 }
