@@ -193,11 +193,13 @@ async def upload_file(
         raise HTTPException(400, "No valid transactions found in file")
 
     # Apply merchant_map overrides — only fill gaps the keyword parser missed,
-    # never override a keyword match (terminal IDs are sometimes truncated by the
-    # bank export and end up shared by unrelated merchants, e.g. "8595575").
+    # never override a keyword match. Also require a decimal suffix on the
+    # terminal ID ("8595575.20" not bare "8595575") — bare IDs are sometimes
+    # a truncated prefix shared across many unrelated merchants.
     for row in rows:
-        if row.get("terminal_id") and row["terminal_id"] in merchant_map and not row.get("subcategory_id"):
-            row["subcategory_id"] = merchant_map[row["terminal_id"]]
+        tid = row.get("terminal_id") or ""
+        if "." in tid and tid in merchant_map and not row.get("subcategory_id"):
+            row["subcategory_id"] = merchant_map[tid]
             row["auto_categorized"] = True
             row["needs_review"] = False
 
@@ -317,10 +319,15 @@ def update_transaction(txn_id: int, body: TransactionUpdate, user_id: str = Depe
     if not update_data:
         raise HTTPException(400, "Nothing to update")
 
-    # If subcategory changed and terminal_id exists, update merchant_map
+    # If subcategory changed and terminal_id exists, update merchant_map.
+    # Only trust terminal IDs with a decimal suffix (e.g. "8595575.20") — the
+    # bank export sometimes truncates it to a bare prefix (e.g. "8595575")
+    # that's shared across many unrelated merchants, so remembering a
+    # category for a bare ID would silently mis-categorize everyone else
+    # sharing it on the next upload.
     if "subcategory_id" in update_data:
         txn = supabase.table("transactions").select("terminal_id,description").eq("id", txn_id).single().execute().data
-        if txn and txn.get("terminal_id"):
+        if txn and txn.get("terminal_id") and "." in txn["terminal_id"]:
             supabase.table("merchant_map").upsert({
                 "terminal_id": txn["terminal_id"],
                 "raw_description": txn.get("description"),
