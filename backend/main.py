@@ -185,7 +185,7 @@ async def upload_file(
     merchant_map = {m["terminal_id"]: m["subcategory_id"] for m in merchant_data}
 
     try:
-        rows = parse_excel(content, bank_source, subcategory_lookup, filename=file.filename or "")
+        rows, closing_balance = parse_excel(content, bank_source, subcategory_lookup, filename=file.filename or "")
     except Exception as e:
         raise HTTPException(400, f"Parse error: {str(e)}")
 
@@ -240,12 +240,22 @@ async def upload_file(
 
     needs_review_count = sum(1 for r in rows if r.get("needs_review"))
 
+    # Debit exports carry a running Balance column — use the last row's value
+    # as the new current balance instead of requiring manual entry.
+    if closing_balance is not None:
+        from datetime import datetime
+        supabase.table("settings").upsert(
+            {"key": "current_balance", "value": str(closing_balance), "updated_at": datetime.utcnow().isoformat()},
+            on_conflict="key",
+        ).execute()
+
     return {
         "imported": imported,
         "skipped": skipped,
         "needs_review": needs_review_count,
         "last_error": last_error,
         "upload_id": upload_id,
+        "closing_balance": closing_balance,
     }
 
 

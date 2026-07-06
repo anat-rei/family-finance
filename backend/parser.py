@@ -12,6 +12,7 @@ DESC_ALIASES   = ["description", "concepto", "descripcion", "details", "descrica
 AMOUNT_ALIASES = ["amount", "importe", "montante", "valor"]
 DEBIT_ALIASES  = ["debit", "débito", "debito", "saida", "saída"]
 CREDIT_ALIASES = ["credit", "crédito", "credito", "entrada"]
+BALANCE_ALIASES = ["balance", "saldo"]
 
 # ── keyword → subcategory name mapping ────────────────────────────────────────
 # NOTE: order matters — more-specific entries must come before shorter ones
@@ -115,11 +116,14 @@ def _keyword_subcategory(description: str) -> Optional[str]:
     return None
 
 
-def parse_excel(file_bytes: bytes, bank_source: str, subcategory_lookup: dict, filename: str = "") -> list[dict]:
+def parse_excel(file_bytes: bytes, bank_source: str, subcategory_lookup: dict, filename: str = "") -> tuple[list[dict], Optional[float]]:
     """
-    Parse an Excel or CSV file and return a list of transaction dicts.
+    Parse an Excel or CSV file and return (transaction dicts, closing balance).
 
     subcategory_lookup: dict mapping subcategory name → subcategory_id
+    closing balance is the Balance column's value on the file's last row
+    (debit exports only); None if there's no Balance column or bank_source
+    doesn't have one.
     """
     import io
     fname = (filename or "").lower()
@@ -225,4 +229,13 @@ def parse_excel(file_bytes: bytes, bank_source: str, subcategory_lookup: dict, f
             "is_duplicate":     False,
         })
 
-    return rows
+    closing_balance = None
+    if bank_source == "bankinter_debit" and len(df) > 0:
+        balance_col = _find_col(df, BALANCE_ALIASES)
+        if balance_col:
+            try:
+                closing_balance = float(str(df.iloc[-1][balance_col]).strip().replace(" ", "").replace(",", ""))
+            except (ValueError, TypeError):
+                pass
+
+    return rows, closing_balance
