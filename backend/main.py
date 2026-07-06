@@ -192,9 +192,11 @@ async def upload_file(
     if not rows:
         raise HTTPException(400, "No valid transactions found in file")
 
-    # Apply merchant_map overrides
+    # Apply merchant_map overrides — only fill gaps the keyword parser missed,
+    # never override a keyword match (terminal IDs are sometimes truncated by the
+    # bank export and end up shared by unrelated merchants, e.g. "8595575").
     for row in rows:
-        if row.get("terminal_id") and row["terminal_id"] in merchant_map:
+        if row.get("terminal_id") and row["terminal_id"] in merchant_map and not row.get("subcategory_id"):
             row["subcategory_id"] = merchant_map[row["terminal_id"]]
             row["auto_categorized"] = True
             row["needs_review"] = False

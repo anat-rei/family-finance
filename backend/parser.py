@@ -35,7 +35,7 @@ KEYWORD_MAP = {
     # Eating out BEFORE Uber so "bolt food" matches here before bare "bolt"
     "Eating out":        ["uber eats", "bolt food", "mcdonalds", "mcdonald's", "burger king",
                           "restaurant", "café", "cafe", "tasca", "starbucks",
-                          "pastelaria", "delivery", "glovo", "zomato", "just eat", "polo 1921"],
+                          "pastelaria", "delivery", "glovo", "zomato", "just eat", "polo 1921", "poke"],
     "Uber":              ["uber", "bolt", "cabify"],
     "Shopping":          ["amazon", "fnac", "temu", "toys"],
     "Subscriptions":     ["claude.ai"],
